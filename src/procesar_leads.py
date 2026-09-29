@@ -2,6 +2,7 @@
 Módulo de Procesamiento y Limpieza de Leads
 Completa las funciones indicadas para limpiar, validar y generar métricas del dataset.
 """
+from urllib3 import response
 import os
 import pandas as pd
 import requests
@@ -14,7 +15,6 @@ def cargar_datos() -> pd.DataFrame:
     df = pd.read_csv(DATA_IN)
     print(f"Total registros cargados: {len(df)}")
     return df
-
 
 
 # new 
@@ -122,8 +122,27 @@ def enviar_muestra_api(df: pd.DataFrame, limite: int = 5):
         }
         
         try:
-            response = requests.post(url, json=payload, headers=headers)
-            print(f"Lead ID {payload['id']} - Status Code: {response.status_code} - Respuesta: {response.json()}")
+            response = requests.post(url, json=payload, headers=headers, timeout=10)
+            
+            if response.status_code in (200, 201):
+                msg = "Lead creado/sincronizado correctamente"
+            elif response.status_code == 401:
+                msg = "HTTP 401: No autorizado - Token invalido o vencido"
+            elif response.status_code == 429:
+                msg = "HTTP 429: Limite de peticiones alcanzado (Rate limit)"
+            elif response.status_code == 400:
+                msg = "HTTP 400: Datos invalidos"
+            else:
+                msg = f"HTTP {response.status_code}: Error en servidor"
+                
+            print(f"Lead ID {payload['id']} - Status: {response.status_code} [{msg}] - Respuesta: {response.json()}")
         except Exception as e:
             print(f"Error al enviar Lead ID {payload['id']}: {e}")
+
+if __name__ == "__main__":
+    df = cargar_datos()
+    df_limpio = limpiar_datos(df)
+    generar_resumen(df_limpio)
+    exportar_datos(df_limpio)
+    enviar_muestra_api(df_limpio)
 
