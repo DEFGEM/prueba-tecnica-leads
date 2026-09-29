@@ -86,8 +86,18 @@ En el directorio sql/:
 En src/procesar_leads.py:
 - Completa la función de envío para mandar una muestra de prospectos a POST http://127.0.0.1:8000/api/leads incluyendo el encabezado Authorization: Bearer atlas-token-2026.
 - Explica con tu propio criterio (en este README o en comentarios de código; sin IA) cómo mitigarías en producción los siguientes dos escenarios HTTP:
-  - HTTP 401 Unauthorized (Token vencido o inválido):
-  - HTTP 429 Too Many Requests (Límite de peticiones alcanzado):
+  - **HTTP 401 Unauthorized (Token vencido o inválido):**
+
+    Este error ocurre cuando la "llave de acceso" (oken) es incorrecta o diferente a la que se espera.
+    una solucion: No debemos reintentar infinitamente con la misma llave fallida. El sistema debe solicitar automáticamente una nueva llave mediante un flujo de reautenticación (Refresh Token) y una vez obtenida la nueva llave válida, se reintenta la petición. El error debe registrarse en un log seguro sin exponer credenciales.
+
+
+
+  - **HTTP 429 Too Many Requests (Límite de peticiones alcanzado):**
+
+    Este error ocurre cuando enviamos demasiadas peticiones en muy poco tiempo y superamos el límite permitido rate limit.
+    Solución: El sistema debe pausar los envíos. Primero revisa si el servidor especifica un tiempo de espera header Retry-Aftery si eel el caso de que no existe, se utiliza un tiempo de espera que aumenta linealmente entre cada reintento exponencial backoff. Para evitar la perdida de prospectos mientras se espera, estos se almacenan temporalmente en una cola de tareas asíncronas a demas de implementar un sistema de monitoreo para la deteccion de anomalias.
+
 
 ### 4. Arquitectura de IA y Herramientas (15%)
 Nota: Redacta tus respuestas con criterio propio. Queda prohibido el uso de IA para esta sección.
